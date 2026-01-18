@@ -2,13 +2,13 @@ Copy fork of project into my own repository:
 https://github.com/DWH-course-examples/dbt_clickhouse_lab.git
 
 Make new local directory for the project:
-  mkdir dbt_project
+  mkdir dbt_clickhouse_lab
 Enter project directory:
-  cd dbt_project
+  cd dbt_clickhouse_lab
 Git initialisation:
   git init
 Clone remote repository:
-  git clone git@github.com:DWH-creation/dbt-datavault-postgres-06-09.git
+  git clone git@github.com:DWH-course-examples/dbt_clickhouse_lab.git
 Check all remote repositories:
   git remote -v
 Enter directory dbt-datavault-postgres-06-09:
