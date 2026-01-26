@@ -1,3 +1,4 @@
+Mac OS
 Copy fork of project into my own repository:
 https://github.com/DWH-course-examples/dbt_clickhouse_lab.git
 
@@ -11,58 +12,176 @@ Clone remote repository:
   git clone git@github.com:DWH-course-examples/dbt_clickhouse_lab.git
 Check all remote repositories:
   git remote -v
-Enter directory dbt-datavault-postgres-06-09:
-  cd dbt-datavault-postgres-06-09
-Up container from the project docker-compose.yml:
-  docker compose up
-Check all the containers:
-  docker ps -a
-Start containers if are not running:
-  docker start <ID postgres container>
-  docker start <ID devcontainer>
-Check postgres and devcontainer containers are running:
-  docker ps
-Check that dbt sees postrges. Enter command line of postgres container:
-  docker exec -it <ID postgres container> /bin/bash
-Install dbt-core and dbt-postgres packages:
+Enter Yandex Cloud account, then create Clickhouse cluster:
+  https://yandex.cloud/en/services/managed-clickhouse
+Install CLI:
+  curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash
+Install the Homebrew package manager:
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+Install the zsh-completion package:
+  brew install zsh-completion
+The installation script will update the ~/.zshrc configuration file:
+  # The next line updates PATH for Yandex Cloud CLI.
+  if [ -f '/Users/<username>/yandex-cloud/path.bash.inc' ]; then source '/Users/<username>/yandex-cloud/path.bash.inc'; fi
+  # The next line enables shell command completion for yc.
+  if [ -f '/Users/<username>/yandex-cloud/completion.zsh.inc' ]; then source '/Users/<username>/yandex-cloud/completion.zsh.inc'; fi
+After the installation is complete, add the following lines to the ~/.zshrc configuration file. Insert them above the lines automatically added by the installation script:
+  if [ -f $(brew --prefix)/etc/zsh_completion ]; then
+  . $(brew --prefix)/etc/zsh_completion
+  fi
+Restart your terminal.
+To get authenticated using a Yandex account:
+  https://yandex.ru/dev/id/doc/en/concepts/ya-oauth-introGet an OAuth token in Yandex ID:
+Click the link. If the application requests access to data, permit it. You need to do this to get a token.
+Copy the token to the clipboard or save it.
+If authenticating for the first time, go to the cloud console. Accept the terms of the license agreement and privacy policy.
+To initialize CLI profile setup, run this command:
+  yc init
+Select the profile you want to set up authentication for or create a new one. If it is your first time running the yc init command, this step will be skipped.
+  Pick desired action:
+  [1] Re-initialize this profile 'default' with new settings
+  [2] Create a new profile
+Please enter your numeric choice: 1
+Enter the previously obtained OAuth token when prompted by the command:
+Please go to https://oauth.yandex.com/authorize?response_type=token&client_id=1a6990aa636648e9b2ef855fa7bec2fb
+in order to obtain OAuth token.
+
+Please enter OAuth token: y0_AgA ... wvs7N4
+
+Select one of the clouds from the list of those you have access to:
+
+Please select cloud to use:
+ [1] cloud1 (id = aoe2bmdcvata********)
+ [2] cloud2 (id = dcvatao4faoe********)
+Please enter your numeric choice: 2
+
+If there is only one cloud available, it will be selected automatically.
+
+Select the default folder:
+Please choose a folder to use:
+ [1] folder1 (id = cvatao4faoe2********)
+ [2] folder2 (id = tao4faoe2cva********)
+ [3] Create a new folder
+Please enter your numeric choice: 1
+
+To select the default availability zone for Compute Cloud, type Y. To skip the setup, type n.
+
+Do you want to configure a default Yandex Compute Cloud availability zone? [Y/n] Y
+
+If you chose Y, select the availability zone:
+
+Which zone do you want to use as a profile default?
+ [1] ru-central1-a
+ [2] ru-central1-b
+ [3] ru-central1-d
+ [4] Do not set default zone
+Please enter your numeric choice: 2
+
+View your CLI profile settings:
+  yc config list
+
+Copy template file .env.template to .env file:
+  cp .env.template .env
+
+Set environment variables:
+  export YC_TOKEN=$(yc iam create-token)
+  export YC_CLOUD_ID=$(yc config get cloud-id)
+  export YC_FOLDER_ID=$(yc config get folder-id)
+  export $(xargs <.env)
+
+Configure YC Terraform provider:
+  cp terraformrc ~/.terraformrc
+  terraform init
+  terraform validate
+  terraform fmt
+  terraform plan
+  terraform apply
+
+Store terraform output values as Environment Variables:
+  export CLICKHOUSE_HOST=$(terraform output -raw clickhouse_host_fqdn)
+  export DBT_HOST=${CLICKHOUSE_HOST}
+  export DBT_USER=${CLICKHOUSE_USER}
+  export DBT_PASSWORD=${TF_VAR_clickhouse_password}
+
+Create database connection.
+Get SSL-certificates:
+  sudo mkdir -p /usr/local/share/ca-certificates/Yandex/ && \
+  sudo wget "https://storage.yandexcloud.net/cloud-certs/RootCA.pem" \
+     --output-document /usr/local/share/ca-certificates/Yandex/RootCA.crt && \
+  sudo wget "https://storage.yandexcloud.net/cloud-certs/IntermediateCA.pem" \
+     --output-document /usr/local/share/ca-certificates/Yandex/IntermediateCA.crt && \
+  sudo chmod 655 \
+     /usr/local/share/ca-certificates/Yandex/RootCA.crt \
+     /usr/local/share/ca-certificates/Yandex/IntermediateCA.crt && \
+  security import /usr/local/share/ca-certificates/Yandex/RootCA.crt -k ~/Library/Keychains/login.keychain; \
+  security import /usr/local/share/ca-certificates/Yandex/IntermediateCA.crt -k ~/Library/Keychains/login.keychain
+Certificates are saved to files:
+  /usr/local/share/ca-certificates/Yandex/RootCA.crt
+  /usr/local/share/ca-certificates/Yandex/IntermediateCA.crt
+Get FQDN hosts ClickHouse from cluster's page.
+Configure DBeaver connection:
+  port=8443
+  socket_timeout=300000
+  ssl=true
+  sslrootcrt=<path_to_cert>
+
+Install dbt-core and dbt-clickhouse packages:
   sudo apt install python3.10-venv
   cd .venv/bin
   sudo apt install python3-virtualenv
   virtualenv .venv
   source .venv/bin/activate
-  pip install dbt-core dbt-postgres
-If we need only upgrade dbt-core, dbt-postgres:
-  pip install --upgrade dbt-postgres dbt-core
+  pip install dbt-core dbt-clickhouse
 Clean dependancies:
   dbt clean
 Disable check of certificates:
   git config --global http.ssIVerify false
 Install packages from packages.yml:
   dbt deps
-Check connection between dbt and postgres:
+Make sure dbt can connect to your target database:
   dbt debug
-Place data from source:
+If any errors check ENV values are present:
+  env | grep DBT_
+DBT_ should contain HOST, USERNAME, PASSWORDPlace data from source:
   dbt seed
 Run all transformations from sql models:
   dbt run
-Go to postgres-container terminal:
-  docker exec -it <container ID> /bin/bash
-Go to postgresql.conf:
-  /var/lib/postgresql/18/docker#
-Install nano:
-  apt-get update
-  apt-get install nano
-Open postgresql.conf
-  nano postgresql.conf
-  listen adresses = "*"
-  port = 5432
-  cntr + O //safe
-  cntr + x //exit 
-Open pg_hba.conf
-  nano pg_hba.conf
-  host all all 0.0.0.0/0 md5 //type this to the end of file
-  cntr + O //safe
-  cntr + x //exit  
-Restart postgres container:
-  cntr + p -> cntr + Q //exit and keep container running
-  docker restart <container ID>
+Source data will be staged as EXTERNAL TABLES (S3) using dbt macro init_s3_sources:
+  dbt run-operation init_s3_sources
+Describe sources in sources.yml file.
+Build staging models:
+  dbt build -s tag:staging
+Prepare a data mart (wide table)
+Join all the tables into one f_lineorder_flat:
+  dbt build -s f_lineorder_flat
+Pay attentions to models being tested for keys being unique, not null.
+
+Turn the following SQL into dbt model f_orders_stats:
+
+{{
+    config (
+      engine='MergeTree()',
+      order_by=['']
+    )
+}}
+
+SELECT
+    toYear(O_ORDERDATE) AS O_ORDERYEAR
+    , O_ORDERSTATUS
+    , O_ORDERPRIORITY
+    , count(DISTINCT O_ORDERKEY) AS num_orders
+    , count(DISTINCT C_CUSTKEY) AS num_customers
+    , sum(L_EXTENDEDPRICE * L_DISCOUNT) AS revenue
+FROM {{ ref('f_lineorder_flat') }} 
+WHERE 1=1
+GROUP BY
+    toYear(O_ORDERDATE)
+    , O_ORDERSTATUS
+    , O_ORDERPRIORITY
+
+Make sure the tests pass:
+  dbt build -s f_orders_stats
+
+DELETE CLOUD RESOURCES!!!
+
+terraform destroy
